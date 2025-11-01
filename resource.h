@@ -1,9 +1,6 @@
-﻿//{{NO_DEPENDENCIES}}
-// Microsoft Visual C++ 生成的包含文件。
-// 供 Clock.rc 使用
-//
-#define IDC_MYICON                      2
-#define IDD_CHANGE_SIZE                 9
+﻿#define IDC_MYICON                      2
+#define IDD_CHANGE_POSITION             130
+#define IDD_CHANGE_SIZE                 131
 #define IDD_CLOCK_DIALOG                102
 #define IDS_APP_TITLE                   103
 #define IDM_ABOUT                       104
@@ -13,11 +10,15 @@
 #define IDD_CHANGE_COLOR                110
 #define IDR_MAINFRAME                   128
 #define IDD_DIALOG1                     130
-#define IDC_X_INPUT                     1011
+#define IDC_X_EDIT                      1001
+#define IDC_Y_EDIT                      1002
+#define IDC_FONTSIZE_EDIT                1003
 #define IDC_RICHEDIT22                  1012
 #define IDC_x                           1014
 #define IDC_RICHEDIT21                  1015
 #define IDC_STATIC                      -1
+#define IDC_X_INPUT                     1007
+#define IDC_Y_INPUT                     1008
 
 // Next default values for new objects
 // 
