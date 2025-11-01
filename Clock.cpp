@@ -68,39 +68,7 @@ void UpdateClockColor();
 // 位置设置对话框过程
 INT_PTR CALLBACK PositionDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	switch (msg) {
-	case WM_INITDIALOG: {
-		wchar_t buffer[16];
-		swprintf_s(buffer, L"%d", g_config.x);
-		SetDlgItemTextW(hwnd, IDC_X_EDIT, buffer);
-		swprintf_s(buffer, L"%d", g_config.y);
-		SetDlgItemTextW(hwnd, IDC_Y_EDIT, buffer);
-		return TRUE;
-	}
-	case WM_COMMAND: {
-		switch (LOWORD(wParam)) {
-		case IDOK_BUTTON: {
-			wchar_t xBuffer[16], yBuffer[16];
-			GetDlgItemTextW(hwnd, IDC_X_EDIT, xBuffer, 16);
-			GetDlgItemTextW(hwnd, IDC_Y_EDIT, yBuffer, 16);
 
-			g_config.x = _wtoi(xBuffer);
-			g_config.y = _wtoi(yBuffer);
-
-			UpdateClockPosition(GetParent(hwnd), g_config.x, g_config.y);
-			EndDialog(hwnd, IDOK);
-			return TRUE;
-		}
-		case IDCANCEL_BUTTON: {
-			EndDialog(hwnd, IDCANCEL);
-			return TRUE;
-		}
-		}
-		break;
-	}
-	case WM_CLOSE: {
-		EndDialog(hwnd, IDCANCEL);
-		break;
-	}
 	}
 	return FALSE;
 }
@@ -108,43 +76,12 @@ INT_PTR CALLBACK PositionDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 // 字体大小设置对话框过程
 INT_PTR CALLBACK FontSizeDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	switch (msg) {
-	case WM_INITDIALOG: {
-		wchar_t buffer[16];
-		swprintf_s(buffer, L"%d", g_config.fontSize);
-		SetDlgItemTextW(hwnd, IDC_FONTSIZE_EDIT, buffer);
-		return TRUE;
-	}
-	case WM_COMMAND: {
-		switch (LOWORD(wParam)) {
-		case IDOK_BUTTON: {
-			wchar_t sizeBuffer[16];
-			GetDlgItemTextW(hwnd, IDC_FONTSIZE_EDIT, sizeBuffer, 16);
-
-			int newSize = _wtoi(sizeBuffer);
-			if (newSize >= 8 && newSize <= 72) {
-				g_config.fontSize = newSize;
-				UpdateClockFontSize();
-				EndDialog(hwnd, IDOK);
-			}
-			else {
-				MessageBoxW(hwnd, L"字体大小必须在8-72之间", L"错误", MB_OK | MB_ICONERROR);
-			}
-			return TRUE;
-		}
-		case IDCANCEL_BUTTON: {
-			EndDialog(hwnd, IDCANCEL);
-			return TRUE;
-		}
-		}
-		break;
-	}
-	case WM_CLOSE:
-		EndDialog(hwnd, IDCANCEL);
-		break;
+	
 	}
 	return FALSE;
 }
 
+// 窗口过程
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	switch (msg) {
 	case WM_CREATE: {
@@ -299,33 +236,12 @@ void ShowContextMenu(HWND hwnd) {
 
 // 显示位置设置对话框
 BOOL ShowPositionDialog(HWND hwnd) {
-	return DialogBox(GetModuleHandle(NULL),
-		MAKEINTRESOURCE(IDD_CHANGE_COLOR),
-		hwnd,
-		PositionDialogProc) == IDOK;
+	return FALSE; // 占位符
 }
 
 // 显示字体大小设置对话框
 BOOL ShowFontSizeDialog(HWND hwnd) {
-	// 创建简单的输入对话框
-	wchar_t buffer[16];
-	swprintf_s(buffer, L"%d", g_config.fontSize);
-
-	wchar_t newSize[16] = { 0 };
-
-	if (DialogBoxParam(GetModuleHandle(NULL),
-		MAKEINTRESOURCE(2), // 需要创建对话框资源
-		hwnd,
-		FontSizeDialogProc,
-		(LPARAM)newSize) == IDOK) {
-		int size = _wtoi(newSize);
-		if (size >= 8 && size <= 72) {
-			g_config.fontSize = size;
-			UpdateClockFontSize();
-			return TRUE;
-		}
-	}
-	return FALSE;
+	return FALSE; // 占位符
 }
 
 // 显示颜色选择对话框
@@ -333,12 +249,17 @@ BOOL ShowColorDialog(HWND hwnd) {
 	CHOOSECOLOR cc = { 0 };
 	cc.lStructSize = sizeof(CHOOSECOLOR);
 	cc.hwndOwner = hwnd;
-	cc.rgbResult = g_config.textColor;
+	cc.rgbResult = g_config.textColor; // 初始颜色
 	cc.lpCustColors = (LPDWORD)malloc(16 * sizeof(DWORD));
 	cc.Flags = CC_RGBINIT | CC_FULLOPEN;
 
-	if (ChooseColor(&cc)) {
-		g_config.textColor = cc.rgbResult;
+	if (ChooseColor(&cc)) { // 用户选择了颜色
+		if (cc.rgbResult != RGB(0, 0, 0)){// 黑色会导致不可见
+			g_config.textColor = cc.rgbResult;
+		}
+		else{
+			g_config.textColor = RGB(1,0,0); // 设置为稍微亮一点的黑色
+		}
 		UpdateClockColor();
 		free(cc.lpCustColors);
 		return TRUE;
