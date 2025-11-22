@@ -28,6 +28,39 @@
     <ClInclude Include="Clock.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="imGUI\imconfig.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="imGUI\imgui.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="imGUI\imgui_impl_dx9.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="imGUI\imgui_impl_dx10.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="imGUI\imgui_impl_dx11.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="imGUI\imgui_impl_dx12.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="imGUI\imgui_impl_win32.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="imGUI\imgui_internal.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="imGUI\imstb_rectpack.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="imGUI\imstb_textedit.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="imGUI\imstb_truetype.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Clock.cpp">

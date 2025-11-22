@@ -125,6 +125,17 @@
   <ItemGroup>
     <ClInclude Include="Clock.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="imGUI\imconfig.h" />
+    <ClInclude Include="imGUI\imgui.h" />
+    <ClInclude Include="imGUI\imgui_impl_dx10.h" />
+    <ClInclude Include="imGUI\imgui_impl_dx11.h" />
+    <ClInclude Include="imGUI\imgui_impl_dx12.h" />
+    <ClInclude Include="imGUI\imgui_impl_dx9.h" />
+    <ClInclude Include="imGUI\imgui_impl_win32.h" />
+    <ClInclude Include="imGUI\imgui_internal.h" />
+    <ClInclude Include="imGUI\imstb_rectpack.h" />
+    <ClInclude Include="imGUI\imstb_textedit.h" />
+    <ClInclude Include="imGUI\imstb_truetype.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
