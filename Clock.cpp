@@ -241,7 +241,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             ShowAboutDialog(hwnd);
             break;
         }
-        return 0;
+        break;
     }
     case WM_DESTROY:
         RemoveTrayIcon(hwnd);
@@ -286,7 +286,7 @@ void ShowContextMenu(HWND hwnd) {
     AppendMenuW(hMenu, MF_STRING, IDM_CHANGE_COLOR, L"更改颜色");
     AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
     AppendMenuW(hMenu, MF_STRING, IDM_EXIT, L"退出");
-    AppendMenuW(hMenu, MF_STRING, IDM_ABOUT, L"by寇埕豪");
+    AppendMenuW(hMenu, MF_STRING, IDM_ABOUT, L"by Chenghao_Kou");
 
     POINT pt;
     GetCursorPos(&pt);
@@ -328,11 +328,31 @@ BOOL ShowColorDialog(HWND hwnd) {
     cc.Flags = CC_RGBINIT | CC_FULLOPEN;
 
     if (ChooseColor(&cc)) { // 用户选择了颜色
-        if (cc.rgbResult != RGB(0, 0, 0)){// 黑色会导致不可见
-            g_config.textColor = cc.rgbResult;
+        if (cc.rgbResult == RGB(0, 0, 0)){// 黑色会导致不可见
+			cc.rgbResult = RGB(0, 0, 1);
         }
-        else{
-            g_config.textColor = RGB(1,0,0); // 设置为稍微亮一点的黑色
+
+		// 渐变颜色
+        while (g_config.textColor != cc.rgbResult){
+            // 先检查二者的差值，如果差值不能整除2，则将当前值加1
+            int r1 = GetRValue(cc.rgbResult);
+            int g1 = GetGValue(cc.rgbResult);
+            int b1 = GetBValue(cc.rgbResult);
+            int r2 = GetRValue(g_config.textColor);
+            int g2 = GetGValue(g_config.textColor);
+            int b2 = GetBValue(g_config.textColor);
+            if (abs(r1 - r2) % 2 != 0) r2 += (r1 > r2) ? 1 : -1;
+            if (abs(g1 - g2) % 2 != 0) g2 += (g1 > g2) ? 1 : -1;
+            if (abs(b1 - b2) % 2 != 0) b2 += (b1 > b2) ? 1 : -1;
+            g_config.textColor = RGB(r2, g2, b2);
+			// 每次改变一点点颜色
+            g_config.textColor = RGB(
+				(r1 + r2) / 2,
+				(g1 + g2) / 2,
+				(b1 + b2) / 2
+            );
+			UpdateClockColor();
+			Sleep(100);
         }
         UpdateClockColor();
         free(cc.lpCustColors);
