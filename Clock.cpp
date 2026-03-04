@@ -10,239 +10,90 @@ ClockConfig g_config = { 0, 2, 36, RGB(255, 255, 255) };
 // 主窗口句柄（用于在对话框回调或其他位置触发重绘）
 HWND g_hwndMain = NULL;
 
-// 对话框控件ID
-#define IDC_X_EDIT 1001
-#define IDC_Y_EDIT 1002
-#define IDC_FONTSIZE_EDIT 1003
-#define IDC_COLOR_BUTTON 1004
-#define IDOK_BUTTON 1005
-#define IDCANCEL_BUTTON 1006
-
-// 托盘图标ID
-#define TRAY_ICON_ID 1
-#define WM_TRAYICON (WM_USER + 1)
-
-// 函数声明
-void AddTrayIcon(HWND hwnd);
-void RemoveTrayIcon(HWND hwnd);
-void ShowContextMenu(HWND hwnd);
-BOOL ShowPositionDialog(HWND hwnd);
-BOOL ShowFontSizeDialog(HWND hwnd);
-BOOL ShowColorDialog(HWND hwnd);
-BOOL ShowAboutDialog(HWND hwnd);
-
-// 关于对话框过程声明
-INT_PTR CALLBACK AboutDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-// 关于对话框实现（使用资源中的对话框IDD_ABOUTBOX）
-BOOL ShowAboutDialog(HWND hwnd) {
-    return DialogBox(GetModuleHandle(NULL),
-        MAKEINTRESOURCE(IDD_ABOUTBOX),
-        hwnd,
-        AboutDialogProc) == IDOK;
+void DrawClockToWindow(HWND hwnd) {
+    HDC hdc = GetDC(hwnd);
+    RECT rect;
+    GetClientRect(hwnd, &rect);
+    HDC hdcMem = CreateCompatibleDC(hdc);
+    BITMAPINFO bmi = { 0 };
+    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth = rect.right;
+    bmi.bmiHeader.biHeight = -rect.bottom;
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32;
+    bmi.bmiHeader.biCompression = BI_RGB;
+    void* pBits;
+    HBITMAP hBmp = CreateDIBSection(hdc, &bmi, DIB_RGB_COLORS, &pBits, NULL, 0);
+    SelectObject(hdcMem, hBmp);
+    FillRect(hdcMem, &rect, (HBRUSH)GetStockObject(BLACK_BRUSH));
+    time_t now = time(0);
+    tm ltm;
+    localtime_s(&ltm, &now);
+    wchar_t timeStr[20];
+    swprintf_s(timeStr, L"%02d:%02d:%02d", ltm.tm_hour, ltm.tm_min, ltm.tm_sec);
+    SetTextColor(hdcMem, g_config.textColor);
+    SetBkMode(hdcMem, TRANSPARENT);
+    HFONT hFont = CreateFont(g_config.fontSize, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+        DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+        DEFAULT_PITCH, L"Arial");
+    HFONT hOldFont = (HFONT)SelectObject(hdcMem, hFont);
+    DrawTextW(hdcMem, timeStr, -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    POINT ptSrc = { 0, 0 };
+    SIZE windowSize = { rect.right, rect.bottom };
+    BLENDFUNCTION blend = { AC_SRC_OVER, 0, 255, 0 };
+    UpdateLayeredWindow(hwnd, hdc, NULL, &windowSize, hdcMem, &ptSrc, RGB(0, 0, 0), &blend, ULW_COLORKEY);
+    SelectObject(hdcMem, hOldFont);
+    DeleteObject(hFont);
+    DeleteObject(hBmp);
+    DeleteDC(hdcMem);
+    ReleaseDC(hwnd, hdc);
 }
 
-// 关于对话框过程
-INT_PTR CALLBACK AboutDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    switch (msg) {
-    case WM_INITDIALOG:
-        return TRUE;
-    case WM_COMMAND:
-        switch (LOWORD(wParam)) {
-        case IDOK:
-            EndDialog(hwnd, LOWORD(wParam));
-            return TRUE;
-        case IDCANCEL:
-            EndDialog(hwnd, LOWORD(wParam));
-            return TRUE;
-        }
+void HandleTrayMenuCommand(HWND hwnd, UINT cmd) {
+    switch (cmd) {
+    case IDM_EXIT:
+        DestroyWindow(hwnd);
         break;
-    case WM_CLOSE:
-        EndDialog(hwnd, IDCANCEL);
-        return TRUE;
+    case IDM_CHANGE_POSITION:
+        ShowPositionDialog(hwnd);
+        break;
+    case IDM_CHANGE_FONTSIZE:
+        ShowFontSizeDialog(hwnd);
+        break;
+    case IDM_CHANGE_COLOR:
+        ShowColorDialog(hwnd);
+        break;
+    case IDM_ABOUT:
+        ShowAboutDialog(hwnd);
+        break;
     }
-    return FALSE;
 }
 
-void UpdateClockPosition(HWND hwnd, int x, int y);
-void UpdateClockFontSize();
-void UpdateClockColor();
-
-// 位置设置对话框过程
-INT_PTR CALLBACK PositionDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    switch (msg) {
-    case WM_INITDIALOG: {
-        wchar_t buffer[16];
-        swprintf_s(buffer, L"%d", g_config.x);
-        SetDlgItemTextW(hwnd, IDC_X_EDIT, buffer);
-        swprintf_s(buffer, L"%d", g_config.y);
-        SetDlgItemTextW(hwnd, IDC_Y_EDIT, buffer);
-        return TRUE;
-    }
-    case WM_COMMAND: {
-        switch (LOWORD(wParam)) {
-        case IDOK: {
-            wchar_t xBuffer[16], yBuffer[16];
-            GetDlgItemTextW(hwnd, IDC_X_EDIT, xBuffer, 16);
-            GetDlgItemTextW(hwnd, IDC_Y_EDIT, yBuffer, 16);
-
-            g_config.x = _wtoi(xBuffer);
-            g_config.y = _wtoi(yBuffer);
-
-            // 使用主窗口句柄更新位置
-            UpdateClockPosition(g_hwndMain ? g_hwndMain : GetParent(hwnd), g_config.x, g_config.y);
-            EndDialog(hwnd, IDOK);
-            return TRUE;
-        }
-        case IDCANCEL:
-            EndDialog(hwnd, IDCANCEL);
-            return TRUE;
-        }
+void HandleTrayIconMessage(HWND hwnd, LPARAM lParam) {
+    switch (lParam) {
+    case WM_RBUTTONUP:
+    case WM_CONTEXTMENU:
+    case WM_LBUTTONDBLCLK:
+    case WM_LBUTTONDOWN:
+        ShowContextMenu(hwnd);
         break;
     }
-    case WM_CLOSE:
-        EndDialog(hwnd, IDCANCEL);
-        break;
-    }
-    return FALSE;
 }
 
-// 字体大小设置对话框过程
-INT_PTR CALLBACK FontSizeDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    switch (msg) {
-    case WM_INITDIALOG: {
-        wchar_t buffer[16];
-        swprintf_s(buffer, L"%d", g_config.fontSize);
-        SetDlgItemTextW(hwnd, IDC_FONTSIZE_EDIT, buffer);
-        return TRUE;
-    }
-    case WM_COMMAND: {
-        switch (LOWORD(wParam)) {
-        case IDOK: {
-            wchar_t sizeBuffer[16];
-            GetDlgItemTextW(hwnd, IDC_FONTSIZE_EDIT, sizeBuffer, 16);
-
-            int newSize = _wtoi(sizeBuffer);
-            if (newSize >= 8 && newSize <= 60) {
-                g_config.fontSize = newSize;
-                UpdateClockFontSize();
-                EndDialog(hwnd, IDOK);
-            } else {
-                MessageBoxW(hwnd, L"字体大小必须在8-60之间", L"错误", MB_OK | MB_ICONERROR);
-            }
-            return TRUE;
-        }
-        case IDCANCEL:
-            EndDialog(hwnd, IDCANCEL);
-            return TRUE;
-        }
-        break;
-    }
-    case WM_CLOSE:
-        EndDialog(hwnd, IDCANCEL);
-        break;
-    }
-    return FALSE;
-}
-
-// 窗口过程
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
-    case WM_CREATE: {
+    case WM_CREATE:
         AddTrayIcon(hwnd);
         return 0;
-    }
-    case WM_TIMER: {
-        HDC hdc = GetDC(hwnd);
-        RECT rect;
-        GetClientRect(hwnd, &rect);
-
-        // 创建内存DC和32位位图
-        HDC hdcMem = CreateCompatibleDC(hdc);
-        BITMAPINFO bmi = { 0 };
-        bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bmi.bmiHeader.biWidth = rect.right;
-        bmi.bmiHeader.biHeight = -rect.bottom;
-        bmi.bmiHeader.biPlanes = 1;
-        bmi.bmiHeader.biBitCount = 32;
-        bmi.bmiHeader.biCompression = BI_RGB;
-
-        void* pBits;
-        HBITMAP hBmp = CreateDIBSection(hdc, &bmi, DIB_RGB_COLORS, &pBits, NULL, 0);
-        SelectObject(hdcMem, hBmp);
-
-        // 使用黑色填充背景
-        FillRect(hdcMem, &rect, (HBRUSH)GetStockObject(BLACK_BRUSH));
-
-        // 获取当前时间
-        time_t now = time(0);
-        tm ltm;
-        localtime_s(&ltm, &now);
-        wchar_t timeStr[20];
-        swprintf_s(timeStr, L"%02d:%02d:%02d", ltm.tm_hour, ltm.tm_min, ltm.tm_sec);
-
-        // 设置字体和颜色
-        SetTextColor(hdcMem, g_config.textColor);
-        SetBkMode(hdcMem, TRANSPARENT);
-        HFONT hFont = CreateFont(g_config.fontSize, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
-            DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
-            DEFAULT_PITCH, L"Arial");
-        HFONT hOldFont = (HFONT)SelectObject(hdcMem, hFont);
-
-        // 绘制文本
-        DrawTextW(hdcMem, timeStr, -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-
-        // 更新分层窗口
-        POINT ptSrc = { 0, 0 };
-        SIZE windowSize = { rect.right, rect.bottom };
-        BLENDFUNCTION blend = { AC_SRC_OVER, 0, 255, 0 };
-        UpdateLayeredWindow(hwnd, hdc, NULL, &windowSize, hdcMem, &ptSrc, RGB(0, 0, 0), &blend, ULW_COLORKEY);
-
-        // 清理资源
-        SelectObject(hdcMem, hOldFont);
-        DeleteObject(hFont);
-        DeleteObject(hBmp);
-        DeleteDC(hdcMem);
-        ReleaseDC(hwnd, hdc);
+    case WM_TIMER:
+        DrawClockToWindow(hwnd);
         return 0;
-    }
-    case WM_TRAYICON: {
-        switch (lParam) {
-        case WM_RBUTTONUP:
-            ShowContextMenu(hwnd);
-            break;
-        case WM_CONTEXTMENU:
-            ShowContextMenu(hwnd);
-            break;
-        case WM_LBUTTONDBLCLK:
-            ShowContextMenu(hwnd);
-            break;
-        case WM_LBUTTONDOWN:
-            ShowContextMenu(hwnd);
-            break;
-        }
+    case WM_TRAYICON:
+        HandleTrayIconMessage(hwnd, lParam);
         return 0;
-    }
-    case WM_COMMAND: {
-        switch (LOWORD(wParam)) {
-        case IDM_EXIT:
-            DestroyWindow(hwnd);
-            break;
-        case IDM_CHANGE_POSITION:
-            ShowPositionDialog(hwnd);
-            break;
-        case IDM_CHANGE_FONTSIZE:
-            ShowFontSizeDialog(hwnd);
-            break;
-        case IDM_CHANGE_COLOR:
-            ShowColorDialog(hwnd);
-            break;
-        case IDM_ABOUT:
-            ShowAboutDialog(hwnd);
-            break;
-        }
+    case WM_COMMAND:
+        HandleTrayMenuCommand(hwnd, LOWORD(wParam));
         break;
-    }
     case WM_DESTROY:
         RemoveTrayIcon(hwnd);
         KillTimer(hwnd, 1);
@@ -251,6 +102,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     default:
         return DefWindowProc(hwnd, msg, wParam, lParam);
     }
+    return 0;
 }
 
 // 添加托盘图标
@@ -302,6 +154,105 @@ void ShowContextMenu(HWND hwnd) {
     DestroyMenu(hMenu);
 }
 
+
+INT_PTR CALLBACK PositionDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam){
+    switch (msg) {
+    case WM_INITDIALOG: {
+        wchar_t buffer[16];
+        swprintf_s(buffer, L"%d", g_config.x);
+        SetDlgItemTextW(hwnd, IDC_X_EDIT, buffer);
+        swprintf_s(buffer, L"%d", g_config.y);
+        SetDlgItemTextW(hwnd, IDC_Y_EDIT, buffer);
+        return TRUE;
+    }
+    case WM_COMMAND: {
+        switch (LOWORD(wParam)) {
+        case IDOK: {
+            wchar_t xBuffer[16], yBuffer[16];
+            GetDlgItemTextW(hwnd, IDC_X_EDIT, xBuffer, 16);
+            GetDlgItemTextW(hwnd, IDC_Y_EDIT, yBuffer, 16);
+
+            g_config.x = _wtoi(xBuffer);
+            g_config.y = _wtoi(yBuffer);
+
+            // 使用主窗口句柄更新位置
+            UpdateClockPosition(g_hwndMain ? g_hwndMain : GetParent(hwnd), g_config.x, g_config.y);
+            EndDialog(hwnd, IDOK);
+            return TRUE;
+        }
+        case IDCANCEL:
+            EndDialog(hwnd, IDCANCEL);
+            return TRUE;
+        }
+        break;
+    }
+    case WM_CLOSE:
+        EndDialog(hwnd, IDCANCEL);
+        break;
+    }
+    return FALSE;
+}
+
+INT_PTR CALLBACK FontSizeDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam){
+    switch (msg) {
+    case WM_INITDIALOG: {
+        wchar_t buffer[16];
+        swprintf_s(buffer, L"%d", g_config.fontSize);
+        SetDlgItemTextW(hwnd, IDC_FONTSIZE_EDIT, buffer);
+        return TRUE;
+    }
+    case WM_COMMAND: {
+        switch (LOWORD(wParam)) {
+        case IDOK: {
+            wchar_t sizeBuffer[16];
+            GetDlgItemTextW(hwnd, IDC_FONTSIZE_EDIT, sizeBuffer, 16);
+
+            int newSize = _wtoi(sizeBuffer);
+            if (newSize >= 8 && newSize <= 60) {
+                g_config.fontSize = newSize;
+                UpdateClockFontSize();
+                EndDialog(hwnd, IDOK);
+            } else {
+                MessageBoxW(hwnd, L"字体大小必须在8-60之间", L"错误", MB_OK | MB_ICONERROR);
+            }
+            return TRUE;
+        }
+        case IDCANCEL:
+            EndDialog(hwnd, IDCANCEL);
+            return TRUE;
+        }
+        break;
+    }
+    case WM_CLOSE:
+        EndDialog(hwnd, IDCANCEL);
+        break;
+    }
+    return FALSE;
+}
+
+INT_PTR CALLBACK AboutDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam){
+    switch (msg) {
+    case WM_INITDIALOG:
+        return TRUE;
+    case WM_COMMAND:
+        switch (LOWORD(wParam)) {
+        case IDOK:
+            EndDialog(hwnd, LOWORD(wParam));
+            return TRUE;
+        case IDCANCEL:
+            EndDialog(hwnd, LOWORD(wParam));
+            return TRUE;
+        }
+        break;
+    case WM_CLOSE:
+        EndDialog(hwnd, IDCANCEL);
+        return TRUE;
+    }
+    return FALSE;
+}
+
+
+
 // 显示位置设置对话框
 BOOL ShowPositionDialog(HWND hwnd) {
     return DialogBox(GetModuleHandle(NULL),
@@ -326,7 +277,7 @@ BOOL ShowColorDialog(HWND hwnd) {
     cc.rgbResult = g_config.textColor; // 初始颜色
     cc.lpCustColors = (LPDWORD)malloc(16 * sizeof(DWORD));
     cc.Flags = CC_RGBINIT | CC_FULLOPEN;
-
+    
     if (ChooseColor(&cc)) { // 用户选择了颜色
         if (cc.rgbResult == RGB(0, 0, 0)){// 黑色会导致不可见
 			cc.rgbResult = RGB(0, 0, 1);
@@ -361,6 +312,14 @@ BOOL ShowColorDialog(HWND hwnd) {
 
     free(cc.lpCustColors);
     return FALSE;
+}
+
+// 显示关于对话框
+BOOL ShowAboutDialog(HWND hwnd) {
+    return DialogBox(GetModuleHandle(NULL),
+        MAKEINTRESOURCE(IDD_ABOUTBOX),
+        hwnd,
+        AboutDialogProc) == IDOK;
 }
 
 // 更新时钟位置
