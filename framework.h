@@ -18,4 +18,7 @@
 #include <string>
 #include <commdlg.h>
 #include <shellapi.h>
+#include <shlobj.h>
 #include <chrono>
+#include <stdexcept>
+#include <format>
