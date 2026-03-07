@@ -35,7 +35,7 @@ jobs:
         working-directory: ${{ github.workspace }} # 工作目录为代码根目录
         # 核心 MSBuild 命令，根据你的项目修改路径和参数
         run: |
-          msbuild "你的项目名称.sln" `
+          msbuild "Clock.sln" `
             /t:Build `          # 执行构建操作
             /p:Configuration=Release ` # 编译配置（Release/Debug）
             /p:Platform=x64 `          # 编译平台（x64/x86/Win32）
@@ -49,10 +49,9 @@ jobs:
         with:
           # 产物名称（自定义）
           name: Clock
-          # 产物路径：根据你的项目输出目录修改
-          # 通常 VS 项目输出路径：解决方案目录/项目名/x64/Release
+          # 产物路径
           path: |
-            ${{ github.workspace }}/DesktopClock/x64/Release/*.exe
-            ${{ github.workspace }}/DesktopClock/x64/Release/*.pdb # 调试符号（可选）
+            ${{ github.workspace }}/Clock/x64/Release/*.exe
+            ${{ github.workspace }}/Clock/x64/Release/*.pdb # 调试符号（可选）
           # 产物保留时间（默认90天）
           retention-days: 30
