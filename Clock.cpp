@@ -201,9 +201,9 @@ LRESULT CALLBACK ExamWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
         }
         textRect = { 0, rect.bottom * 2 / 3, rect.right, rect.bottom };
         if (examDays >= 0) {
-            swprintf_s(buffer, L"中考: %d 天", examDays);
+            swprintf_s(buffer, L" 中       考: %d 天", examDays);
         } else {
-            swprintf_s(buffer, L"中考: 已结束");
+            swprintf_s(buffer, L" 中       考: 已结束");
         }
         DrawTextW(hdcMem, buffer, -1, &textRect, DT_CENTER | DT_BOTTOM | DT_SINGLELINE);
 
@@ -294,28 +294,31 @@ void HandleTrayMenuCommand(HWND hwnd, UINT cmd) {
     switch (cmd) {
     case IDM_EXIT:
         DestroyWindow(hwnd);
-        break;
+        return;
     case IDM_CHANGE_POSITION:
         ShowPositionDialog(hwnd);
         // 对话框关闭后重新激活窗口，解决托盘菜单第二次打不开的问题
         SetForegroundWindow(hwnd);
-        break;
+        return;
     case IDM_CHANGE_FONTSIZE:
         ShowFontSizeDialog(hwnd);
         SetForegroundWindow(hwnd);
-        break;
+        return;
     case IDM_CHANGE_COLOR:
         ShowColorDialog(hwnd);
         SetForegroundWindow(hwnd);
-        break;
+        return;
     case IDM_SET_EXAM_DATE:
         ShowExamDateDialog(hwnd);
         SetForegroundWindow(hwnd);
-        break;
+        return;
+    case IDM_SHOW_BIGSCREEN_T:
+        system("start https://time.is/zh/China");
+        return;
     case IDM_ABOUT:
         ShowAboutDialog(hwnd);
         SetForegroundWindow(hwnd);
-        break;
+        return;
     }
 }
 
@@ -413,6 +416,7 @@ void ShowContextMenu(HWND hwnd) {
     AppendMenuW(hMenu, MF_STRING, IDM_CHANGE_FONTSIZE, L"更改字体大小");
     AppendMenuW(hMenu, MF_STRING, IDM_CHANGE_COLOR, L"更改颜色");
     AppendMenuW(hMenu, MF_STRING, IDM_SET_EXAM_DATE, L"设置倒计时日期");
+    AppendMenuW(hMenu, MF_STRING, IDM_SHOW_BIGSCREEN_T, L"显示大屏时间");
     AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
     AppendMenuW(hMenu, MF_STRING, IDM_EXIT, L"退出");
     AppendMenuW(hMenu, MF_STRING, IDM_ABOUT, L"by Chenghao_Kou");

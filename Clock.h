@@ -18,7 +18,9 @@ struct ClockConfig {
 #define IDM_CHANGE_FONTSIZE 10003
 #define IDM_CHANGE_COLOR 10004
 #define IDM_SET_EXAM_DATE 10005
+#define IDM_SHOW_BIGSCREEN_T 10006
 #define IDI_APP_ICON 100
+
 
 // 托盘图标ID和消息
 #define TRAY_ICON_ID 1
