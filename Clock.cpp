@@ -242,8 +242,7 @@ LRESULT CALLBACK ExamWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
         return 0;
     }
     case WM_PAINT: {
-        // 分层窗口不需要 BeginPaint/EndPaint，直接返回即
-        // 实际绘制由 WM_TIMER 触发 UpdateLayeredWindow 完成
+        PostMessageW(hwnd, WM_TIMER, 0, 0);
         return 0;
     }
     case WM_DESTROY:
@@ -298,7 +297,8 @@ void DrawClockToWindow(HWND hwnd) {
 void UpdateExamCountdowns() {
     // 更新中考倒计时窗口
     if (g_hwndExam) {
-        InvalidateRect(g_hwndExam, NULL, TRUE);
+        OutputDebugStringW(L"[Debug] Update ExamCountdowns & call InvalidateRect\n");
+        //InvalidateRect(g_hwndExam, NULL, TRUE); // 窗口区域被标记为无效导致WM_PAINT
         SendMessage(g_hwndExam, WM_TIMER, 0, 0);
     }
     OutputDebugStringW(L"[Debug] Function called:UpdateExamCountdowns\n");
@@ -392,7 +392,11 @@ INT_PTR CALLBACK ExamDateDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
             g_englishExamDay = st.wDay;
 
             UpdateExamCountdowns();
-            SaveConfig();
+            try {
+                SaveConfig();
+            } catch (...) {
+                OutputDebugStringW(L"[ERR] Exception occurred in SaveConfig\n");
+            }
             EndDialog(hwnd, IDOK);
             return TRUE;
         }
@@ -647,8 +651,9 @@ BOOL ShowExamDateDialog(HWND hwnd) {
 
 // 更新时钟位置
 void UpdateClockPosition(HWND hwnd, int x, int y) {
+    OutputDebugStringW(L"[Debug] Update Position\n");
     SetWindowPos(hwnd, HWND_TOPMOST, x, y, 200, 50, SWP_NOACTIVATE | SWP_NOZORDER);
-    InvalidateRect(hwnd, NULL, TRUE);
+    PostMessageW(hwnd, WM_TIMER, 0, 0);
 }
 
 // 更新字体大小
@@ -656,7 +661,8 @@ void UpdateClockFontSize() {
     // 使用主窗口句柄触发重绘
     HWND hwnd = g_hwndMain ? g_hwndMain : FindWindowW(CLASS_NAME, WINDOW_TITLE);
     if (hwnd) {
-        InvalidateRect(hwnd, NULL, TRUE);
+        OutputDebugStringW(L"[Debug] Update FontSize & call InvalidateRect\n");
+        //InvalidateRect(hwnd, NULL, TRUE);
         SendMessage(hwnd, WM_TIMER, 0, 0);
     }
 }
@@ -665,9 +671,11 @@ void UpdateClockFontSize() {
 void UpdateClockColor() {
     HWND hwnd = g_hwndMain ? g_hwndMain : FindWindowW(CLASS_NAME, WINDOW_TITLE);
     if (hwnd) {
-        InvalidateRect(hwnd, NULL, TRUE);
+        OutputDebugStringW(L"[Debug] Update Color & call InvalidateRect\n");
+        //InvalidateRect(hwnd, NULL, TRUE);
         SendMessage(hwnd, WM_TIMER, 0, 0);
     }
+    else OutputDebugStringW(L"[ERR] Cannot find hwnd when calling UpdateClockColor\n");
 }
 
 // 主窗口过程
