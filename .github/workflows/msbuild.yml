@@ -1,0 +1,58 @@
+# Workflow 名称
+name: MSBuild 自动编译
+
+# 触发条件：推送到 main 分支、创建标签、手动触发
+on:
+  push:
+    branches: [ main ]
+  release:
+    types: [ created ]
+  workflow_dispatch: # 手动触发开关
+
+# 作业定义（在 Windows 环境运行）
+jobs:
+  build:
+    # 指定运行环境：GitHub 托管的 Windows 最新版 Runner
+    runs-on: windows-latest
+
+    steps:
+      # 步骤1：检出仓库代码到 Runner
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 拉取完整提交历史（可选）
+
+      # 步骤2：设置 MSBuild 环境（自动安装对应 VS Build Tools）
+      - name: 配置 MSBuild
+        uses: microsoft/setup-msbuild@v2
+        with:
+          # 指定 VS 版本（可选，默认安装最新版 Build Tools）
+          # VS2022: 17.0, VS2019: 16.0, VS2026 暂未正式支持，可省略
+          vs-version: '17.0'
+
+      # 步骤3：执行 MSBuild 编译项目
+      - name: 编译项目
+        working-directory: ${{ github.workspace }} # 工作目录为代码根目录
+        # 核心 MSBuild 命令，根据你的项目修改路径和参数
+        run: |
+          msbuild "你的项目名称.sln" `
+            /t:Build `          # 执行构建操作
+            /p:Configuration=Release ` # 编译配置（Release/Debug）
+            /p:Platform=x64 `          # 编译平台（x64/x86/Win32）
+            /p:PlatformToolset=v143 `  # VS2022 工具集（v143），VS2019=v142
+            /m `                      # 多核编译（加速）
+            /verbosity:minimal        # 简化输出日志
+
+      # 步骤4：上传编译产物（可选，方便下载）
+      - name: 上传编译产物
+        uses: actions/upload-artifact@v4
+        with:
+          # 产物名称（自定义）
+          name: Clock
+          # 产物路径：根据你的项目输出目录修改
+          # 通常 VS 项目输出路径：解决方案目录/项目名/x64/Release
+          path: |
+            ${{ github.workspace }}/DesktopClock/x64/Release/*.exe
+            ${{ github.workspace }}/DesktopClock/x64/Release/*.pdb # 调试符号（可选）
+          # 产物保留时间（默认90天）
+          retention-days: 30
