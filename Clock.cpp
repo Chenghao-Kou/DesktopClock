@@ -15,10 +15,10 @@ ClockConfig g_config = { 0, 2, 36, RGB(255, 255, 255) };
 HWND g_hwndMain = NULL;
 HWND g_hwndExam = NULL;
 
-// 年级相关，默认为2025年6月15日
-int g_examYear = 2025, g_examMonth = 6, g_examDay = 15;
-int g_sportExamYear = 2025, g_sportExamMonth = 5, g_sportExamDay = 20;
-int g_englishExamYear = 2025, g_englishExamMonth = 5, g_englishExamDay = 25;
+// 年级相关，默认为2026年6月15日
+int g_examYear = 2026, g_examMonth = 6, g_examDay = 15;
+int g_sportExamYear = 2026, g_sportExamMonth = 5, g_sportExamDay = 20;
+int g_englishExamYear = 2026, g_englishExamMonth = 5, g_englishExamDay = 25;
 
 // 配置数据结构体（用于存储到 EXE 文件末尾）
 struct ConfigData {
@@ -63,19 +63,20 @@ void GetConfigFilePath(wchar_t* path) {
 
 // 从用户目录加载配置
 void LoadConfig() {
+    OutputDebugStringW(L"[Debug] Entering LoadConfig\n");
     wchar_t configPath[MAX_PATH];
     GetConfigFilePath(configPath);
 
-    // 打开配置文件
     FILE* fp;
-    if (_wfopen_s(&fp, configPath, L"rb") != 0) return;
+    if (_wfopen_s(&fp, configPath, L"rb") != 0) {
+        OutputDebugStringW(L"[ERR] Failed to open config file\n");
+        return;
+    }
 
-    // 读取配置数据
     ConfigData cfg;
     fread(&cfg, sizeof(ConfigData), 1, fp);
     fclose(fp);
 
-    // 验证校验和
     if (cfg.checksum == CalcChecksum(&cfg)) {
         g_config.x = cfg.x;
         g_config.y = cfg.y;
@@ -90,15 +91,18 @@ void LoadConfig() {
         g_englishExamYear = cfg.englishExamYear;
         g_englishExamMonth = cfg.englishExamMonth;
         g_englishExamDay = cfg.englishExamDay;
+        OutputDebugStringW(L"[Debug] Config loaded successfully\n");
+    } else {
+        OutputDebugStringW(L"[ERR] Config checksum mismatch\n");
     }
 }
 
 // 保存配置到用户目录
 void SaveConfig() {
+    OutputDebugStringW(L"[Debug] Entering SaveConfig\n");
     wchar_t configPath[MAX_PATH];
     GetConfigFilePath(configPath);
 
-    // 构造配置数据
     ConfigData cfg;
     cfg.x = g_config.x;
     cfg.y = g_config.y;
@@ -115,21 +119,30 @@ void SaveConfig() {
     cfg.englishExamDay = g_englishExamDay;
     cfg.checksum = CalcChecksum(&cfg);
 
-    // 写入配置文件
     FILE* fp;
-    if (_wfopen_s(&fp, configPath, L"wb") != 0) return;
+    if (_wfopen_s(&fp, configPath, L"wb") != 0) {
+        OutputDebugStringW(L"[ERR] Failed to open config file for writing\n");
+        return;
+    }
 
     fwrite(&cfg, sizeof(ConfigData), 1, fp);
     fclose(fp);
+    OutputDebugStringW(L"[Debug] Config saved successfully\n");
 }
 
 // 中考倒计时窗口过程
 LRESULT CALLBACK ExamWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    wchar_t debugMsg[128];
+    swprintf_s(debugMsg, L"[Debug] ExamWndProc: msg=0x%X\n", msg);
+    OutputDebugStringW(debugMsg);
+
     switch (msg) {
     case WM_CREATE:
+        OutputDebugStringW(L"[Debug] ExamWndProc: WM_CREATE\n");
         SetTimer(hwnd, 1, 1000, NULL); // 每秒刷新一次
         return 0;
     case WM_TIMER: {
+        OutputDebugStringW(L"[Debug] ExamWndProc: WM_TIMER\n");
         // 在 WM_TIMER 中绘制（与主窗口逻辑一致）
         HDC hdcScreen = GetDC(NULL);
         RECT rect;
@@ -234,6 +247,7 @@ LRESULT CALLBACK ExamWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
         return 0;
     }
     case WM_DESTROY:
+        OutputDebugStringW(L"[Debug] ExamWndProc: WM_DESTROY\n");
         KillTimer(hwnd, 1);
         return 0;
     default:
@@ -287,37 +301,40 @@ void UpdateExamCountdowns() {
         InvalidateRect(g_hwndExam, NULL, TRUE);
         SendMessage(g_hwndExam, WM_TIMER, 0, 0);
     }
-    // TODO: 添加体育中考和英语口语中考窗口的更新逻辑
+    OutputDebugStringW(L"[Debug] Function called:UpdateExamCountdowns\n");
 }
 
 void HandleTrayMenuCommand(HWND hwnd, UINT cmd) {
+    //SetForegroundWindow(hwnd);
     switch (cmd) {
     case IDM_EXIT:
+        OutputDebugStringW(L"[Debug] Received IDM_EXIT\n");
         DestroyWindow(hwnd);
+        OutputDebugStringW(L"[Debug] Function called:DestroyWindow\n");
         return;
     case IDM_CHANGE_POSITION:
+        OutputDebugStringW(L"[Debug] Received IDM_CHANGE_POSITION\n");
         ShowPositionDialog(hwnd);
-        // 对话框关闭后重新激活窗口，解决托盘菜单第二次打不开的问题
-        SetForegroundWindow(hwnd);
         return;
     case IDM_CHANGE_FONTSIZE:
+        OutputDebugStringW(L"[Debug] Received IDM_CHANGE_FONTSIZE\n");
         ShowFontSizeDialog(hwnd);
-        SetForegroundWindow(hwnd);
         return;
     case IDM_CHANGE_COLOR:
+        OutputDebugStringW(L"[Debug] Received IDM_CHANGE_COLOR\n");
         ShowColorDialog(hwnd);
-        SetForegroundWindow(hwnd);
         return;
     case IDM_SET_EXAM_DATE:
+        OutputDebugStringW(L"[Debug] Received IDM_SET_EXAM_DATE\n");
         ShowExamDateDialog(hwnd);
-        SetForegroundWindow(hwnd);
         return;
     case IDM_SHOW_BIGSCREEN_T:
+        OutputDebugStringW(L"[Debug] Received IDM_SHOW_BIGSCREEN_T\n");
         system("start https://time.is/zh/China");
         return;
     case IDM_ABOUT:
+        OutputDebugStringW(L"[Debug] Received IDM_ABOUT\n");
         ShowAboutDialog(hwnd);
-        SetForegroundWindow(hwnd);
         return;
     }
 }
@@ -326,6 +343,9 @@ void HandleTrayMenuCommand(HWND hwnd, UINT cmd) {
 INT_PTR CALLBACK ExamDateDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
     case WM_INITDIALOG: {
+        ShowWindow(hwnd, SW_SHOW);
+        SetForegroundWindow(hwnd);
+
         SYSTEMTIME st = { 0 };
 
         // 初始化中考日期
@@ -392,6 +412,7 @@ INT_PTR CALLBACK ExamDateDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 // 托盘图标相关
 NOTIFYICONDATA g_nid = { 0 };
 
+// 添加托盘图标
 void AddTrayIcon(HWND hwnd) {
     g_nid.cbSize = sizeof(NOTIFYICONDATA);
     g_nid.hWnd = hwnd;
@@ -440,6 +461,10 @@ void ShowContextMenu(HWND hwnd) {
 INT_PTR CALLBACK PositionDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam){
     switch (msg) {
     case WM_INITDIALOG: {
+        // 强制显示对话框
+        ShowWindow(hwnd, SW_SHOW);
+        //SetForegroundWindow(hwnd);
+
         wchar_t buffer[16];
         swprintf_s(buffer, L"%d", g_config.x);
         SetDlgItemTextW(hwnd, IDC_X_EDIT, buffer);
@@ -479,14 +504,20 @@ INT_PTR CALLBACK PositionDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 INT_PTR CALLBACK FontSizeDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam){
     switch (msg) {
     case WM_INITDIALOG: {
+        OutputDebugStringW(L"[Debug] FontSizeDialogProc: WM_INITDIALOG\n");
+        ShowWindow(hwnd, SW_SHOW);
+        //SetForegroundWindow(hwnd);
+
         wchar_t buffer[16];
         swprintf_s(buffer, L"%d", g_config.fontSize);
         SetDlgItemTextW(hwnd, IDC_FONTSIZE_EDIT, buffer);
         return TRUE;
     }
     case WM_COMMAND: {
+        OutputDebugStringW(L"[Debug] FontSizeDialogProc: WM_COMMAND\n");
         switch (LOWORD(wParam)) {
         case IDOK: {
+            OutputDebugStringW(L"[Debug] FontSizeDialogProc: IDOK\n");
             wchar_t sizeBuffer[16];
             GetDlgItemTextW(hwnd, IDC_FONTSIZE_EDIT, sizeBuffer, 16);
 
@@ -494,22 +525,26 @@ INT_PTR CALLBACK FontSizeDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
             if (newSize >= 8 && newSize <= 60) {
                 g_config.fontSize = newSize;
                 UpdateClockFontSize();
+                OutputDebugStringW(L"[Debug] FontSize updated successfully\n");
                 SaveConfig();
                 EndDialog(hwnd, IDOK);
             } else {
                 MessageBoxW(hwnd, L"字体大小必须在8-60之间", L"错误", MB_OK | MB_ICONERROR);
+                OutputDebugStringW(L"[Debug] Invalid font size\n");
             }
             return TRUE;
         }
         case IDCANCEL:
+            OutputDebugStringW(L"[Debug] FontSizeDialogProc: IDCANCEL\n");
             EndDialog(hwnd, IDCANCEL);
             return TRUE;
         }
         break;
     }
     case WM_CLOSE:
+        OutputDebugStringW(L"[Debug] FontSizeDialogProc: WM_CLOSE\n");
         EndDialog(hwnd, IDCANCEL);
-        break;
+        return TRUE;
     }
     return FALSE;
 }
@@ -517,6 +552,8 @@ INT_PTR CALLBACK FontSizeDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 INT_PTR CALLBACK AboutDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam){
     switch (msg) {
     case WM_INITDIALOG:
+        ShowWindow(hwnd, SW_SHOW);
+        //SetForegroundWindow(hwnd);
         return TRUE;
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
@@ -547,20 +584,33 @@ BOOL ShowPositionDialog(HWND hwnd) {
 
 // 显示字体大小设置对话框
 BOOL ShowFontSizeDialog(HWND hwnd) {
-    return DialogBox(GetModuleHandle(NULL),
+    OutputDebugStringW(L"[Debug] Entering ShowFontSizeDialog\n");
+    BOOL result = DialogBox(GetModuleHandle(NULL),
         MAKEINTRESOURCE(IDD_CHANGE_SIZE),
         hwnd,
         FontSizeDialogProc) == IDOK;
+    if (result) {
+        OutputDebugStringW(L"[Debug] ShowFontSizeDialog returned IDOK\n");
+    } else {
+        OutputDebugStringW(L"[Debug] ShowFontSizeDialog returned IDCANCEL or failed\n");
+    }
+    return result;
 }
 
 // 显示颜色选择对话框
 BOOL ShowColorDialog(HWND hwnd) {
+    OutputDebugStringW(L"[Debug] ShowColorDialog\n");
+
     CHOOSECOLOR cc = { 0 };
     cc.lStructSize = sizeof(CHOOSECOLOR);
     cc.hwndOwner = hwnd;
     cc.rgbResult = g_config.textColor;
     cc.lpCustColors = (LPDWORD)malloc(16 * sizeof(DWORD));
     cc.Flags = CC_RGBINIT | CC_FULLOPEN;
+
+    // 激活窗口
+    ShowWindow(hwnd, SW_SHOW);
+    //SetForegroundWindow(hwnd);
 
     if (ChooseColor(&cc)) {
         if (cc.rgbResult == RGB(0, 0, 0)) {
@@ -579,6 +629,7 @@ BOOL ShowColorDialog(HWND hwnd) {
 
 // 显示关于对话框
 BOOL ShowAboutDialog(HWND hwnd) {
+    OutputDebugStringW(L"[Debug] ShowAboutDialog\n");
     return DialogBox(GetModuleHandle(NULL),
         MAKEINTRESOURCE(IDD_ABOUTBOX),
         hwnd,
@@ -587,6 +638,7 @@ BOOL ShowAboutDialog(HWND hwnd) {
 
 // 显示设置倒计时日期对话框
 BOOL ShowExamDateDialog(HWND hwnd) {
+    OutputDebugStringW(L"[Debug] ShowExamDateDialog\n");
     return DialogBox(GetModuleHandle(NULL),
         MAKEINTRESOURCE(IDD_SET_EXAM_DATE),
         hwnd,
@@ -643,6 +695,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         ShowContextMenu(hwnd);
         return 0;
     case WM_COMMAND:
+        OutputDebugStringW(L"[Debug] WndProc:WM_COMMAND\n");
         HandleTrayMenuCommand(hwnd, LOWORD(wParam));
         return 0;
     case WM_DESTROY:
