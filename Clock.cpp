@@ -9,28 +9,11 @@ const wchar_t CLASS_NAME[] = L"DesktopClockClass";
 const wchar_t WINDOW_TITLE[] = L"Desktop Clock";
 
 // x, y, fontSize, Color
-ClockConfig g_config = { 0, 2, 36, RGB(255, 255, 255) };
+ConfigData g_config = { 0,2,36,RGB(255, 255, 255),2026,6,15,5,12,4,25,true };
 
 // 主窗口句柄（用于在对话框回调或其他位置触发重绘）
-HWND g_hwndMain = NULL;
-HWND g_hwndExam = NULL;
-
-// 年级相关，默认为2026年6月15日
-int g_examYear = 2026, g_examMonth = 6, g_examDay = 15;
-int g_sportExamYear = 2026, g_sportExamMonth = 5, g_sportExamDay = 20;
-int g_englishExamYear = 2026, g_englishExamMonth = 5, g_englishExamDay = 25;
-
-// 配置数据结构体（用于存储到 EXE 文件末尾）
-struct ConfigData {
-    int x;
-    int y;
-    int fontSize;
-    COLORREF textColor;
-    int examYear, examMonth, examDay;
-    int sportExamYear, sportExamMonth, sportExamDay;
-    int englishExamYear, englishExamMonth, englishExamDay;
-    int checksum;  // 简单校验和
-};
+HWND g_hwndMain = nullptr;
+HWND g_hwndExam = nullptr;
 
 // 计算校验和
 int CalcChecksum(const ConfigData* cfg) {
@@ -42,9 +25,9 @@ int CalcChecksum(const ConfigData* cfg) {
     return sum;
 }
 
-// 获取配置文件路径
+// 获取配置文件路径(直接操作传入参数)
 void GetConfigFilePath(wchar_t* path) {
-    wchar_t appDataPath[MAX_PATH];
+    wchar_t appDataPath[260];
 
     // 获取用户 AppData\Roaming 目录
     if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL, 0, appDataPath))) {
@@ -64,7 +47,7 @@ void GetConfigFilePath(wchar_t* path) {
 // 从用户目录加载配置
 void LoadConfig() {
     OutputDebugStringW(L"[Debug] Entering LoadConfig\n");
-    wchar_t configPath[MAX_PATH];
+    wchar_t configPath[260];
     GetConfigFilePath(configPath);
 
     FILE* fp;
@@ -72,25 +55,15 @@ void LoadConfig() {
         OutputDebugStringW(L"[ERR] Failed to open config file\n");
         return;
     }
-
+    
     ConfigData cfg;
-    fread(&cfg, sizeof(ConfigData), 1, fp);
-    fclose(fp);
+    if (fp != 0) {
+        fread(&cfg, sizeof(ConfigData), 1, fp);
+        fclose(fp);
+    }
 
     if (cfg.checksum == CalcChecksum(&cfg)) {
-        g_config.x = cfg.x;
-        g_config.y = cfg.y;
-        g_config.fontSize = cfg.fontSize;
-        g_config.textColor = cfg.textColor;
-        g_examYear = cfg.examYear;
-        g_examMonth = cfg.examMonth;
-        g_examDay = cfg.examDay;
-        g_sportExamYear = cfg.sportExamYear;
-        g_sportExamMonth = cfg.sportExamMonth;
-        g_sportExamDay = cfg.sportExamDay;
-        g_englishExamYear = cfg.englishExamYear;
-        g_englishExamMonth = cfg.englishExamMonth;
-        g_englishExamDay = cfg.englishExamDay;
+        g_config = cfg;
         OutputDebugStringW(L"[Debug] Config loaded successfully\n");
     } else {
         OutputDebugStringW(L"[ERR] Config checksum mismatch\n");
@@ -104,19 +77,7 @@ void SaveConfig() {
     GetConfigFilePath(configPath);
 
     ConfigData cfg;
-    cfg.x = g_config.x;
-    cfg.y = g_config.y;
-    cfg.fontSize = g_config.fontSize;
-    cfg.textColor = g_config.textColor;
-    cfg.examYear = g_examYear;
-    cfg.examMonth = g_examMonth;
-    cfg.examDay = g_examDay;
-    cfg.sportExamYear = g_sportExamYear;
-    cfg.sportExamMonth = g_sportExamMonth;
-    cfg.sportExamDay = g_sportExamDay;
-    cfg.englishExamYear = g_englishExamYear;
-    cfg.englishExamMonth = g_englishExamMonth;
-    cfg.englishExamDay = g_englishExamDay;
+    cfg = g_config;
     cfg.checksum = CalcChecksum(&cfg);
 
     FILE* fp;
@@ -178,7 +139,7 @@ LRESULT CALLBACK ExamWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
         // 1. 体育中考倒计时
         int sportDays = 0;
         try {
-            sportDays = GetDaysUntillHighSchoolExam(g_sportExamYear, g_sportExamMonth, g_sportExamDay);
+            sportDays = GetDaysUntillHighSchoolExam(g_config.examYear, g_config.sportExamMonth, g_config.sportExamDay);
         } catch (...) {
             sportDays = -1;
         }
@@ -193,7 +154,7 @@ LRESULT CALLBACK ExamWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
         // 2. 英语口语中考倒计时
         int englishDays = 0;
         try {
-            englishDays = GetDaysUntillHighSchoolExam(g_englishExamYear, g_englishExamMonth, g_englishExamDay);
+            englishDays = GetDaysUntillHighSchoolExam(g_config.examYear, g_config.englishExamMonth, g_config.englishExamDay);
         } catch (...) {
             englishDays = -1;
         }
@@ -208,7 +169,7 @@ LRESULT CALLBACK ExamWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
         // 3. 中考倒计时
         int examDays = 0;
         try {
-            examDays = GetDaysUntillHighSchoolExam(g_examYear, g_examMonth, g_examDay);
+            examDays = GetDaysUntillHighSchoolExam(g_config.examYear, g_config.examMonth, g_config.examDay);
         } catch (...) {
             examDays = -1;
         }
@@ -297,6 +258,7 @@ void DrawClockToWindow(HWND hwnd) {
 void UpdateExamCountdowns() {
     // 更新中考倒计时窗口
     if (g_hwndExam) {
+        g_config.ShowExamDate == true ? ShowWindow(g_hwndExam, SW_SHOW) : ShowWindow(g_hwndExam, SW_HIDE);
         OutputDebugStringW(L"[Debug] Update ExamCountdowns & call InvalidateRect\n");
         //InvalidateRect(g_hwndExam, NULL, TRUE); // 窗口区域被标记为无效导致WM_PAINT
         SendMessage(g_hwndExam, WM_TIMER, 0, 0);
@@ -328,6 +290,11 @@ void HandleTrayMenuCommand(HWND hwnd, UINT cmd) {
         OutputDebugStringW(L"[Debug] Received IDM_SET_EXAM_DATE\n");
         ShowExamDateDialog(hwnd);
         return;
+    case IDM_SHOW_EXAM_DATE:
+        OutputDebugStringW(L"[Debug] Received IDM_SHOW_EXAM_DATE\n");
+        g_config.ShowExamDate = !g_config.ShowExamDate;
+        g_config.ShowExamDate == true ? ShowWindow(g_hwndExam, SW_SHOW) : ShowWindow(g_hwndExam, SW_HIDE);
+        return;
     case IDM_SHOW_BIGSCREEN_T:
         OutputDebugStringW(L"[Debug] Received IDM_SHOW_BIGSCREEN_T\n");
         system("start https://time.is/zh/China");
@@ -339,7 +306,7 @@ void HandleTrayMenuCommand(HWND hwnd, UINT cmd) {
     }
 }
 
-// 新增对话框过程：设置倒计时日期
+// 设置倒计时日期
 INT_PTR CALLBACK ExamDateDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
     case WM_INITDIALOG: {
@@ -349,21 +316,21 @@ INT_PTR CALLBACK ExamDateDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
         SYSTEMTIME st = { 0 };
 
         // 初始化中考日期
-        st.wYear = g_examYear;
-        st.wMonth = g_examMonth;
-        st.wDay = g_examDay;
+        st.wYear = g_config.examYear;
+        st.wMonth = g_config.examMonth;
+        st.wDay = g_config.examDay;
         DateTime_SetSystemtime(GetDlgItem(hwnd, IDC_EXAM_DATE), GDT_VALID, &st);
 
         // 初始化体育中考日期
-        st.wYear = g_sportExamYear;
-        st.wMonth = g_sportExamMonth;
-        st.wDay = g_sportExamDay;
+        st.wYear = g_config.examYear;
+        st.wMonth = g_config.sportExamMonth;
+        st.wDay = g_config.sportExamDay;
         DateTime_SetSystemtime(GetDlgItem(hwnd, IDC_SPORT_DATE), GDT_VALID, &st);
 
         // 初始化英语口语中考日期
-        st.wYear = g_englishExamYear;
-        st.wMonth = g_englishExamMonth;
-        st.wDay = g_englishExamDay;
+        st.wYear = g_config.examYear;
+        st.wMonth = g_config.englishExamMonth;
+        st.wDay = g_config.englishExamDay;
         DateTime_SetSystemtime(GetDlgItem(hwnd, IDC_ENGLISH_DATE), GDT_VALID, &st);
 
         return TRUE;
@@ -373,23 +340,23 @@ INT_PTR CALLBACK ExamDateDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
         case IDOK: {
             SYSTEMTIME st = { 0 };
 
-            // 保存中考日期
-            DateTime_GetSystemtime(GetDlgItem(hwnd, IDC_EXAM_DATE), &st);
-            g_examYear = st.wYear;
-            g_examMonth = st.wMonth;
-            g_examDay = st.wDay;
-
             // 保存体育中考日期
             DateTime_GetSystemtime(GetDlgItem(hwnd, IDC_SPORT_DATE), &st);
-            g_sportExamYear = st.wYear;
-            g_sportExamMonth = st.wMonth;
-            g_sportExamDay = st.wDay;
+            g_config.examYear = st.wYear;
+            g_config.sportExamMonth = st.wMonth;
+            g_config.sportExamDay = st.wDay;
 
             // 保存英语口语中考日期
             DateTime_GetSystemtime(GetDlgItem(hwnd, IDC_ENGLISH_DATE), &st);
-            g_englishExamYear = st.wYear;
-            g_englishExamMonth = st.wMonth;
-            g_englishExamDay = st.wDay;
+            g_config.examYear = st.wYear;
+            g_config.englishExamMonth = st.wMonth;
+            g_config.englishExamDay = st.wDay;
+
+            // 保存中考日期
+            DateTime_GetSystemtime(GetDlgItem(hwnd, IDC_EXAM_DATE), &st);
+            g_config.examYear = st.wYear;
+            g_config.examMonth = st.wMonth;
+            g_config.examDay = st.wDay;
 
             UpdateExamCountdowns();
             try {
@@ -413,10 +380,9 @@ INT_PTR CALLBACK ExamDateDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
     return FALSE;
 }
 
-// 托盘图标相关
+// 托盘图标
 NOTIFYICONDATA g_nid = { 0 };
 
-// 添加托盘图标
 void AddTrayIcon(HWND hwnd) {
     g_nid.cbSize = sizeof(NOTIFYICONDATA);
     g_nid.hWnd = hwnd;
@@ -441,6 +407,8 @@ void ShowContextMenu(HWND hwnd) {
     AppendMenuW(hMenu, MF_STRING, IDM_CHANGE_FONTSIZE, L"更改字体大小");
     AppendMenuW(hMenu, MF_STRING, IDM_CHANGE_COLOR, L"更改颜色");
     AppendMenuW(hMenu, MF_STRING, IDM_SET_EXAM_DATE, L"设置倒计时日期");
+    AppendMenuW(hMenu, g_config.ShowExamDate == true ? MF_CHECKED : MF_UNCHECKED, IDM_SHOW_EXAM_DATE, L"显示/隐藏中考倒计时");
+    AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
     AppendMenuW(hMenu, MF_STRING, IDM_SHOW_BIGSCREEN_T, L"显示大屏时间");
     AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
     AppendMenuW(hMenu, MF_STRING, IDM_EXIT, L"退出");
@@ -455,7 +423,7 @@ void ShowContextMenu(HWND hwnd) {
     // 不使用 TPM_RETURNCMD，让菜单命令通过 WM_COMMAND 消息发送到窗口
     TrackPopupMenu(hMenu, TPM_RIGHTBUTTON, pt.x, pt.y, 0, hwnd, NULL);
 
-    // 菜单关闭后，确保窗口能正确接收下一个点击事件（解决菜单第二次打不开的问题）
+    // 菜单关闭后，确保窗口能正确接收下一个点击事件
     PostMessageW(hwnd, WM_NULL, 0, 0);
 
     DestroyMenu(hMenu);
@@ -467,7 +435,6 @@ INT_PTR CALLBACK PositionDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
     case WM_INITDIALOG: {
         // 强制显示对话框
         ShowWindow(hwnd, SW_SHOW);
-        //SetForegroundWindow(hwnd);
 
         wchar_t buffer[16];
         swprintf_s(buffer, L"%d", g_config.x);
@@ -557,7 +524,6 @@ INT_PTR CALLBACK AboutDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
     switch (msg) {
     case WM_INITDIALOG:
         ShowWindow(hwnd, SW_SHOW);
-        //SetForegroundWindow(hwnd);
         return TRUE;
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
@@ -718,7 +684,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
-    // 加载配置（从 EXE 文件末尾读取）
+    // 加载配置
     LoadConfig();
 
     // 在WinMain开始处加载图标
@@ -794,9 +760,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // 显示倒计时窗口
     ShowWindow(ExamHwnd, SW_SHOW);
     SetWindowPos(ExamHwnd, HWND_DESKTOP, screenWidth - examWidth, 0, examWidth, examHeight, SWP_SHOWWINDOW);
+    g_config.ShowExamDate == true ? ShowWindow(g_hwndExam, SW_SHOW) : ShowWindow(g_hwndExam, SW_HIDE);
 
     // 立即触发第一次绘制
     SendMessage(hwnd, WM_TIMER, 0, 0);
+
+    // 检查更新
+    std::thread CheckUpdate(CheckForUpdate);
+    CheckUpdate.detach();
 
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0)) {

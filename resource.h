@@ -3,6 +3,9 @@
 // 供 Clock.rc 使用
 //
 #define IDC_MYICON                      0
+#define IDOK                            1
+#define IDCANCEL                        2
+#define IDD_SET_EXAM_DATE               101
 #define IDD_CLOCK_DIALOG                102
 #define IDS_APP_TITLE                   103
 #define IDM_ABOUT                       104
@@ -20,14 +23,12 @@
 #define IDC_Y_INPUT                     1008
 #define IDC_RICHEDIT22                  1012
 #define IDC_x                           1014
+#define IDC_EXAM_YEAR_TIP               1014
 #define IDC_RICHEDIT21                  1015
+#define IDC_EXAM_DATE                   1016
+#define IDC_SPORT_DATE                  1017
+#define IDC_ENGLISH_DATE                1018
 #define IDC_STATIC                      -1
-#define IDD_SET_EXAM_DATE              101
-#define IDC_EXAM_DATE                  1016
-#define IDC_SPORT_DATE                 1017
-#define IDC_ENGLISH_DATE               1018
-#define IDOK                            1
-#define IDCANCEL                        2
 
 // Next default values for new objects
 // 

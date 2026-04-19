@@ -7,6 +7,7 @@
 #include "targetver.h"
 //#define WIN32_LEAN_AND_MEAN             // 从 Windows 头文件中排除极少使用的内容
 // Windows 头文件
+#define NOMINMAX
 #include <windows.h>
 // C 运行时头文件
 #include <stdlib.h>
@@ -22,3 +23,11 @@
 #include <chrono>
 #include <stdexcept>
 #include <format>
+#include <wininet.h>
+#include "packages/nlohmann.json.3.12.0/build/native/include/nlohmann/json.hpp"
+#include <thread>
+#include <urlmon.h>
+#include <fstream>
+#include <vector>
+#include <algorithm>
+#pragma comment(lib, "urlmon.lib")
