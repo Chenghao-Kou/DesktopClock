@@ -130,7 +130,7 @@ LRESULT CALLBACK ExamWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
         SetTextColor(hdcMem, RGB(255, 255, 255));
         HFONT hFont = CreateFont(24, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
             DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-            CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Arial");
+            ANTIALIASED_QUALITY, DEFAULT_PITCH, L"Arial");
         HFONT hOldFont = (HFONT)SelectObject(hdcMem, hFont);
 
         wchar_t buffer[64];
@@ -523,6 +523,7 @@ INT_PTR CALLBACK FontSizeDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 INT_PTR CALLBACK AboutDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam){
     switch (msg) {
     case WM_INITDIALOG:
+        OutputDebugStringW(L"[Debug] AboutDialogProc\n");
         ShowWindow(hwnd, SW_SHOW);
         return TRUE;
     case WM_COMMAND:
@@ -533,8 +534,8 @@ INT_PTR CALLBACK AboutDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
         case IDCANCEL:
             EndDialog(hwnd, LOWORD(wParam));
             return TRUE;
+            break;
         }
-        break;
     case WM_CLOSE:
         EndDialog(hwnd, IDCANCEL);
         return TRUE;
@@ -686,6 +687,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     // 加载配置
     LoadConfig();
+
+    // 高DPI支持
+    SetProcessDPIAware();
 
     // 在WinMain开始处加载图标
     hIcon = (HICON)LoadImage(GetModuleHandle(NULL),

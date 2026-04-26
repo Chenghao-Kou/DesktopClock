@@ -20,6 +20,29 @@ struct ConfigData {
     int checksum;  // 校验和
 };
 
+// 定义ACCENT_STATE枚举和ACCENT_POLICY结构体
+enum ACCENT_STATE {
+    ACCENT_DISABLED = 0,
+    ACCENT_ENABLE_GRADIENT = 1,
+    ACCENT_ENABLE_TRANSPARENTGRADIENT = 2,
+    ACCENT_ENABLE_BLURBEHIND = 3,
+    ACCENT_ENABLE_ACRYLICBLURBEHIND = 4,  // 启用亚克力效果
+    ACCENT_INVALID_STATE = 5
+};
+
+struct ACCENT_POLICY {
+    ACCENT_STATE AccentState;
+    DWORD AccentFlags;
+    DWORD GradientColor;
+    DWORD AnimationId;
+};
+
+struct WINCOMPATTRDATA {
+    int Attribute;
+    PVOID Data;
+    ULONG DataSize;
+};
+
 // 菜单命令ID
 #define IDM_EXIT 10001
 #define IDM_CHANGE_POSITION 10002
