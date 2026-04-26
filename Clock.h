@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#define VER "3.0.0"
+#define VER "3.0.1"
 
 #include "resource.h"
 #include <iostream>
